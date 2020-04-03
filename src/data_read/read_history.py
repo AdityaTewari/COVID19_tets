@@ -41,15 +41,19 @@ def make_country_df(data_frame):
     return {"countries": countries, "countries_cost": countries_cost}
 
 
-def european_countries(with_pop=0):
-    csv_file = "D:\personal\PROJECTS\COVID_spread_model\src\models\europe.csv"
+def get_popu_lists(with_pop=False, subset_names = None):
+    csv_file = "/home/aditya/PYTHON_PROJECTS/personal_projects/COVID19_tets/src/models/pop_data.csv"
     df = pd.read_csv(csv_file)
     names = df["name"].to_list()
     if with_pop:
-        pop = df["population"].to_list()
+        popul = df["pop2020"].to_list()
     else:
-        pop = None
-    return names, pop
+        popul = None
+    if subset_names is not None:
+        pop_dict = dict(zip(names, popul))
+        popul = [pop_dict[name] for name in subset_names]
+        names = subset_names
+    return names, popul
 
 
 def read_country_data(country_names, lower_bound=0, data_type="confirmed_global"):
@@ -75,7 +79,6 @@ def read_country_data(country_names, lower_bound=0, data_type="confirmed_global"
         if first_non_zero == -1:
             print("no covid in {} yet".format(country_name))
             first_non_zero = 0
-
         country_case_lists.append(country_cases_list[:]), first_non_zeros.append(first_non_zero)
     return country_case_lists, first_non_zeros
 

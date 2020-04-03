@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from src.data_read import data_process
 import os
 
-def plot_covd_status(v_fit, model_data, v_time, model_time,  country_name, min_cases=1):
+def plot_covd_status(v_fit, model_data, v_time, model_time,  country_name, min_cases=1, plot_name="logistic",
+                     plot_path=None):
     linewidth = 0.75
     plt.plot(v_time, v_fit, label="estimates")
     plt.plot(model_time, model_data, label="historical data", marker=".", linewidth=linewidth)
@@ -13,7 +14,12 @@ def plot_covd_status(v_fit, model_data, v_time, model_time,  country_name, min_c
     plt.ylabel('Cases Expected')
     plt.title('The covid projection model for {}'.format(country_name))
     plt.grid(True)
-    plt.show()
+    main_name = "projection_" + plot_name + ".png"
+    if plot_path is not None:
+        main_name = os.path.join(plot_path, main_name)
+    plt.savefig(main_name)
+    plt.close()
+    # plt.show()
 
 
 def plot_gradients(grads_lists, grad_axs=None, main_series=None, ax_main=None, count_start=0, linewidth=0.75):
@@ -71,6 +77,7 @@ def plot_finalise(grad_fig_axs, fig_main_axs, data_names, x_label="days", plot_n
         if plot_path is not None:
             main_name = os.path.join(plot_path, main_name)
         fig_main_axs.figure.savefig(main_name)
+        plt.close()
 
 
 def plotter(covid_list, plot_name="covid_gradient", plot_path=None, data_name="country", last_n=None, min_case=0):

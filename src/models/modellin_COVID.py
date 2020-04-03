@@ -59,8 +59,6 @@ def exponential(t, a, b, alpha):
     return a - b * np.exp(alpha * t)
 
 
-
-
 def average_model(top_n=10):
     data_frame = read_history.read_full_file()
     country_dict = read_history.make_country_df(data_frame)
@@ -88,8 +86,9 @@ def average_model(top_n=10):
 
 
 if __name__ == '__main__':
-    plot_path = "D:\personal\PROJECTS\COVID_spread_model\src\plot_models"
+    plot_path = "D:\personal\PROJECTS\COVID_spread_modetl\src\plot_models"
     d_type = ["confirmed_global", "deaths_global"]
+    average_model(top_n=10)
     for data_kind in d_type:
         for plot_ratio in [True, False]:
             lower_bound = 30
@@ -97,7 +96,7 @@ if __name__ == '__main__':
             print(european_list)
             country_vals, _ = read_history.read_country_data(country_names=european_list, lower_bound=0, data_type=data_kind)
             europe_sum = data_process.country_sum(country_vals)
-            country_names = ["Italy", "Denmark", "Spain", "Germany", "France"]
+            country_names = ["Italy", "Netherlands", "Spain", "Germany", "United Kingdom"]
             if plot_ratio:
                 country_pop = [100]*len(country_names)
                 for j, country_name in enumerate(country_names):
@@ -113,6 +112,11 @@ if __name__ == '__main__':
             if not os.path.exists(date_folder):
                 os.makedirs(date_folder)
             country_mat, first_non_zeros = read_history.read_country_data(country_names=country_names, lower_bound=lower_bound, data_type=data_kind)
+            country_mat = np.array(country_mat)
+            moving_window = 5
+            country_mat_new =country_mat
+            for i in range(1, moving_window):
+                country_mat_new[:, i:] = country_mat_new[:, :-1*i] + country_mat[:, i:]
             plotters.plotter(europe_sum, plot_name="Europe", plot_path=date_folder, data_name="Europe", min_case=lower_bound)
             if plot_ratio:
                 plot_name = date + "_" + data_kind + "_" + "multicountry_ratio_"

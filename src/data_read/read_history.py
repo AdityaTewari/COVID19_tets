@@ -1,59 +1,7 @@
 import pandas as pd
 import numpy as np
-from src.data_read import  data_path, time_series_path, ts_file_name
-
+from src.data_read import data_path, time_series_path, ts_file_name, population_file
 import os
-
-
-def read_full_file(data_type="confirmed_global"):
-    file_name = ts_file_name + data_type + ".csv"
-    file_path = os.path.join(os.path.join(data_path, time_series_path), file_name)
-    df = pd.read_csv(file_path)
-    i = df.drop(columns=[ "Lat", "Long"])
-    return i
-
-# def get_country_list(country_list=None):
-#     data_frame = read_full_file()
-#     if country_list is None:
-#         country_list = list(set(data_frame["Country/Region"].tolist()))
-#     for country_name in country_list:
-#         k = data_frame[data_frame[data_frame["Country/Region"]==country_name].columns[2:]].sum(axis=1)
-#     return country_list
-#     # print(country_list, data_frame)
-
-
-def get_country_list(data_frame=None):
-    if data_frame is None:
-        data_frame = read_full_file()
-    country_list = list(set(data_frame["Country/Region"].tolist()))
-    return country_list
-
-
-def make_country_df(data_frame):
-    country_list = get_country_list(data_frame)
-    countries = []
-    countries_cost = []
-    for country_name in country_list:
-        k = data_frame[data_frame["Country/Region"] == country_name].sum(axis=0, skipna = True, numeric_only=True)
-        countries.append(country_name)
-        countries_cost.append(k.tolist())
-    countries_cost = np.array(countries_cost)
-    return {"countries": countries, "countries_cost": countries_cost}
-
-
-def get_popu_lists(with_pop=False, subset_names = None):
-    csv_file = "/home/aditya/PYTHON_PROJECTS/personal_projects/COVID19_tets/src/models/pop_data.csv"
-    df = pd.read_csv(csv_file)
-    names = df["name"].to_list()
-    if with_pop:
-        popul = df["pop2020"].to_list()
-    else:
-        popul = None
-    if subset_names is not None:
-        pop_dict = dict(zip(names, popul))
-        popul = [pop_dict[name] for name in subset_names]
-        names = subset_names
-    return names, popul
 
 
 def read_country_data(country_names, lower_bound=0, data_type="confirmed_global"):
@@ -83,10 +31,74 @@ def read_country_data(country_names, lower_bound=0, data_type="confirmed_global"
     return country_case_lists, first_non_zeros
 
 
-def worst_yet(country_dict, top_n=10 ):
+def read_full_file(data_type="confirmed_global"):
+    file_name = ts_file_name + data_type + ".csv"
+    file_path = os.path.join(os.path.join(data_path, time_series_path), file_name)
+    df = pd.read_csv(file_path)
+    i = df.drop(columns=[ "Lat", "Long"])
+    return i
+
+
+def get_country_list(data_frame=None):
+    if data_frame is None:
+        data_frame = read_full_file()
+    country_list = list(set(data_frame["Country/Region"].tolist()))
+    return country_list
+
+
+def read_country_mat(country_names, lower_bound, data_type, moving_window=1):
+    country_mat, first_non_zeros = read_country_data(country_names=country_names, lower_bound=lower_bound,
+                                                                  data_type=data_type)
+    country_mat = np.array(country_mat)
+    print(country_mat[:, -1])
+    if moving_window > 1:
+        country_mat_new = np.copy(country_mat)
+        for i in range(1, moving_window):
+            country_mat_new[:, i:] = country_mat_new[:, :-1 * i] + country_mat[:, i:]
+        country_mat_new = country_mat_new / moving_window
+        print(country_mat[:, -1], country_mat_new[:, -1] )
+    return country_mat, first_non_zeros
+
+
+def make_country_df(data_frame):
+    country_list = get_country_list(data_frame)
+    countries = []
+    countries_cost = []
+    for country_name in country_list:
+        k = data_frame[data_frame["Country/Region"] == country_name].sum(axis=0, skipna = True, numeric_only=True)
+        countries.append(country_name)
+        countries_cost.append(k.tolist())
+    countries_cost = np.array(countries_cost)
+    return {"countries": countries, "countries_cost": countries_cost}
+
+
+def get_popu_lists(with_pop=False, subset_names = None):
+    csv_file = population_file
+    df = pd.read_csv(csv_file)
+    names = df["name"].to_list()
+    if with_pop:
+        popul = df["pop2020"].to_list()
+    else:
+        popul = None
+    if subset_names is not None:
+        pop_dict = dict(zip(names, popul))
+        popul = [pop_dict[name] for name in subset_names]
+        names = subset_names
+    return names, popul
+
+
+def worst_yet(country_dict, top_n=10):
     today_stat = country_dict["countries_cost"][:, -1]
     todays_worst_index = list(np.argsort(-1 * today_stat))[:top_n]
-    return  todays_worst_index
+    return todays_worst_index
+
+
+def get_worst_list(top_n=10):
+    data_frame = read_full_file()
+    country_dict = make_country_df(data_frame)
+    todays_worst_index = worst_yet(country_dict, top_n=top_n)
+    country_names = [country_dict["countries"][i] for i in todays_worst_index]
+    return country_names
 
 
 if __name__ == '__main__':

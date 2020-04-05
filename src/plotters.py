@@ -61,6 +61,7 @@ def plot_finalise(grad_fig_axs, fig_main_axs, data_names, x_label="days", plot_n
         if plot_path is not None:
             save_name = os.path.join(plot_path, save_name)
         ax.figure.savefig(save_name)
+        plt.close()
     if fig_main_axs is not None:
         fig_main_axs.set_xlabel(x_label)
         fig_main_axs.set_ylabel('Cases')
@@ -77,7 +78,7 @@ def plot_finalise(grad_fig_axs, fig_main_axs, data_names, x_label="days", plot_n
         if plot_path is not None:
             main_name = os.path.join(plot_path, main_name)
         fig_main_axs.figure.savefig(main_name)
-        plt.close()
+    plt.close()
 
 
 def plotter(covid_list, plot_name="covid_gradient", plot_path=None, data_name="country", last_n=None, min_case=0):
@@ -114,7 +115,6 @@ def multi_country_plot(multi_country_data, first_non_zeros, data_title_list, plo
         country_val = country_val[first_non_zero:]
         if last_n < len(country_val):
             country_val = country_val[-1 * last_n:]
-            first_non_zero = [0]
             x_label = 'Since {} days back'.format(last_n)
         first, second = data_process.calc_gradients(country_val, grad_by_diff=grad_by_diff, smooth_grad=smooth_grad)
         fig_main, figures = plot_gradients([first, second], figures, main_series=country_val, ax_main=fig_main,

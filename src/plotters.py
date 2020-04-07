@@ -3,16 +3,19 @@ import matplotlib.pyplot as plt
 from src.data_read import data_process
 import os
 
+
 def plot_covd_status(v_fit, model_data, v_time, model_time,  country_name, min_cases=1, plot_name="logistic",
-                     plot_path=None):
+                     plot_delay=0, plot_path=None, data_type="confirmed"):
     linewidth = 0.75
     plt.plot(v_time, v_fit, label="estimates")
     plt.plot(model_time, model_data, label="historical data", marker=".", linewidth=linewidth)
     plt.legend( loc='lower left')
 
     plt.xlabel('Days since {0} cases'.format(min_cases))
-    plt.ylabel('Cases Expected')
+    plt.ylabel('{} Expected'.format(data_type))
     plt.title('The covid projection model for {}'.format(country_name))
+    if plot_delay > 0:
+        plt.title('The covid projection model for {} of {} days back'.format(country_name, str(plot_delay)))
     plt.grid(True)
     main_name = "projection_" + plot_name + ".png"
     if plot_path is not None:

@@ -6,18 +6,19 @@ from scipy.optimize import curve_fit
 import numpy as np
 import datetime
 
-funcs = [fit_functions.richard, fit_functions.logistic]
+funcs = [fit_functions.richard, fit_functions.logistic, fit_functions.exponential]
 
 
 def average_model(x_vals, ts, norm_ts=None, ratio=True):
     func_i = 0
     ts.sort()
+    next_fit = True
     if ratio and (norm_ts is not None):
         ts = ts / norm_ts
-    while len(funcs) > func_i:
+    while len(funcs) > func_i and next_fit:
         try:
             popt, pcov = curve_fit(funcs[func_i], x_vals, ts)
-            break
+            next_fit = False
         except:
             func_i += 1
     if not(func_i < len(funcs)):
@@ -27,15 +28,24 @@ def average_model(x_vals, ts, norm_ts=None, ratio=True):
 
 
 def fit_contry_models(country_names, covid_vals_list, popul_vals, first_non_zeros, plot_path=None,
-                      data_kind="confirmed"):
+                      data_kind="confirmed", past_day=None):
     future_peak = 21
-    lower_bound = 30
+    lower_bound = 10
     ratio = True
     for i, country in enumerate(country_names):
         if covid_vals_list[i] is None:
             pass
         else:
             covid_vals = covid_vals_list[i][first_non_zeros[i]:]
+            if past_day is not None:
+                delay_plot_path = os.path.join(plot_path, country)
+                if not os.path.exists(delay_plot_path):
+                    os.makedirs(delay_plot_path)
+                if past_day > 0:
+                    covid_vals = covid_vals[:(-1) * past_day]
+            else:
+                delay_plot_path = plot_path
+                past_day = 0
             x_vals = np.arange(1, len(covid_vals)+1)
             fit_params = average_model(x_vals, covid_vals, popul_vals[i], ratio=ratio)
             if fit_params is not None:
@@ -44,8 +54,10 @@ def fit_contry_models(country_names, covid_vals_list, popul_vals, first_non_zero
                 v_fit = funcs[funcs_i](future_time, *popt)
                 if ratio:
                     v_fit = v_fit * popul_vals[i]
+                data_name = data_kind.split("_")[0]
                 plotters.plot_covd_status(v_fit, covid_vals, future_time, x_vals, country, min_cases=lower_bound,
-                                          plot_name=country + "_" + data_kind, plot_path=plot_path)
+                                          plot_name=country + "_" + data_kind + "_ " + str(past_day),
+                                          plot_delay=past_day, plot_path=delay_plot_path, data_type=data_name)
             else:
                 print("failed curve fit for the country {0} and datatype {1}".format(country, data_kind))
 
@@ -54,20 +66,23 @@ if __name__ == '__main__':
     date_today = datetime.datetime.now()
     date = date_today.strftime("%d_%m_%Y")
     country_name_list = models.country_names
+    pop_country_list = models.pop_names
     plot_path = models.plot_path
     import os
     date_folder = os.path.join(plot_path, date)
     lower_bound = 50
     if not os.path.exists(date_folder):
         os.makedirs(date_folder)
-    _, popul_vals = read_history.get_popu_lists(with_pop=True, subset_names=country_name_list)
+    _, popul_vals = read_history.get_popu_lists(with_pop=True, subset_names=pop_country_list)
     d_type = ["confirmed_global", "deaths_global"]
-    lower_bounds = [30, 0]
+    lower_bounds = [10, 10]
+    last_days = 8
     for data_kind, lower_bound in zip(d_type, lower_bounds):
         country_mat, first_non_zeros = read_history.read_country_mat(country_names=country_name_list, lower_bound=lower_bound,
                                                                      data_type=data_kind, moving_window=0)
-        fit_contry_models(country_name_list, country_mat, popul_vals, first_non_zeros, plot_path=date_folder,
-                          data_kind=data_kind)
+        for t in range(last_days, -1, -2):
+            fit_contry_models(country_name_list, country_mat, popul_vals, first_non_zeros, plot_path=date_folder,
+                              data_kind=data_kind, past_day=t)
     for data_kind, lower_bound in zip(d_type, lower_bounds):
         country_mat, first_non_zeros = read_history.read_country_mat(country_names=country_name_list, lower_bound=lower_bound,
                                                                      data_type=data_kind, moving_window=3)
